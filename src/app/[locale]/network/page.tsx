@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import * as d3 from 'd3';
 import { Network, BookOpen, Check, X, AlertCircle } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 interface Book {
   id: string;
@@ -46,6 +47,9 @@ interface GraphLink extends d3.SimulationLinkDatum<GraphNode> {
 }
 
 export default function NetworkPage() {
+  const t = useTranslations('network');
+  const tr = useTranslations('relationships');
+  
   const svgRef = useRef<SVGSVGElement>(null);
   const [books, setBooks] = useState<Book[]>([]);
   const [relationships, setRelationships] = useState<Relationship[]>([]);
@@ -65,7 +69,7 @@ export default function NetworkPage() {
         setBooks(booksData);
         setRelationships(relData);
       } catch (error) {
-        console.error('加载数据失败:', error);
+        console.error('Failed to load data:', error);
       }
     };
     loadData();
@@ -201,7 +205,6 @@ export default function NetworkPage() {
     node.on('click', async (event, d) => {
       const book = books.find((b) => b.id === d.id);
       if (book) {
-        // 获取完整书籍信息
         const res = await fetch(`/api/books/${book.id}`);
         const fullBook = await res.json();
         setSelectedBook(fullBook);
@@ -235,20 +238,20 @@ export default function NetworkPage() {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-8 flex items-center gap-3">
         <Network className="h-8 w-8 text-amber-600" />
-        书籍关系网络
+        {t('title')}
       </h1>
 
       {/* 筛选器 */}
       <div className="flex gap-4 mb-6">
         <span className="text-gray-600 dark:text-gray-300 self-center">
-          筛选关系类型:
+          {t('filterType')}
         </span>
         <div className="flex gap-2">
           {[
-            { value: 'all', label: '全部' },
-            { value: 'CORROBORATE', label: '印证' },
-            { value: 'CONFLICT', label: '冲突' },
-            { value: 'SUPPLEMENT', label: '补充' },
+            { value: 'all', label: t('all') },
+            { value: 'CORROBORATE', label: t('corroborate') },
+            { value: 'CONFLICT', label: t('conflict') },
+            { value: 'SUPPLEMENT', label: t('supplement') },
           ].map((filter) => (
             <button
               key={filter.value}
@@ -270,7 +273,7 @@ export default function NetworkPage() {
         <div className="lg:col-span-2 bg-white dark:bg-gray-800 rounded-xl shadow-lg p-4 border border-amber-100 dark:border-gray-700">
           {books.length === 0 ? (
             <div className="h-96 flex items-center justify-center text-gray-500 dark:text-gray-400">
-              暂无数据，请先添加并分析书籍
+              No data available
             </div>
           ) : (
             <svg
@@ -284,15 +287,15 @@ export default function NetworkPage() {
           <div className="flex justify-center gap-6 mt-4 text-sm">
             <div className="flex items-center gap-2">
               <div className="w-8 h-0.5 bg-green-500"></div>
-              <span className="text-gray-600 dark:text-gray-300">印证</span>
+              <span className="text-gray-600 dark:text-gray-300">{t('corroborate')}</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="w-8 h-0.5 bg-red-500 border-dashed border-t-2 border-red-500"></div>
-              <span className="text-gray-600 dark:text-gray-300">冲突</span>
+              <span className="text-gray-600 dark:text-gray-300">{t('conflict')}</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="w-8 h-0.5 bg-blue-500"></div>
-              <span className="text-gray-600 dark:text-gray-300">补充</span>
+              <span className="text-gray-600 dark:text-gray-300">{t('supplement')}</span>
             </div>
           </div>
         </div>
@@ -309,33 +312,33 @@ export default function NetworkPage() {
               <div className="space-y-3 text-sm">
                 {selectedBook.author && (
                   <p className="text-gray-600 dark:text-gray-300">
-                    <span className="font-medium">作者:</span> {selectedBook.author}
+                    <span className="font-medium">{t('author')}:</span> {selectedBook.author}
                   </p>
                 )}
                 {selectedBook.authorNationality && (
                   <p className="text-gray-600 dark:text-gray-300">
-                    <span className="font-medium">国籍:</span> {selectedBook.authorNationality}
+                    <span className="font-medium">{t('nationality')}:</span> {selectedBook.authorNationality}
                   </p>
                 )}
                 {selectedBook.publisher && (
                   <p className="text-gray-600 dark:text-gray-300">
-                    <span className="font-medium">出版社:</span> {selectedBook.publisher}
+                    <span className="font-medium">{t('publisher')}:</span> {selectedBook.publisher}
                   </p>
                 )}
                 {selectedBook.publishDate && (
                   <p className="text-gray-600 dark:text-gray-300">
-                    <span className="font-medium">出版时间:</span> {selectedBook.publishDate}
+                    <span className="font-medium">{t('publishTime')}:</span> {selectedBook.publishDate}
                   </p>
                 )}
                 {selectedBook.authorBio && (
                   <div className="pt-3 border-t border-gray-100 dark:border-gray-700">
-                    <p className="font-medium text-gray-700 dark:text-gray-200 mb-1">作者生平:</p>
+                    <p className="font-medium text-gray-700 dark:text-gray-200 mb-1">{t('authorLife')}:</p>
                     <p className="text-gray-600 dark:text-gray-300">{selectedBook.authorBio}</p>
                   </div>
                 )}
                 {selectedBook.authorThoughts && (
                   <div className="pt-3 border-t border-gray-100 dark:border-gray-700">
-                    <p className="font-medium text-gray-700 dark:text-gray-200 mb-1">主要思想:</p>
+                    <p className="font-medium text-gray-700 dark:text-gray-200 mb-1">{t('mainThoughts')}:</p>
                     <p className="text-gray-600 dark:text-gray-300">{selectedBook.authorThoughts}</p>
                   </div>
                 )}
@@ -344,11 +347,11 @@ export default function NetworkPage() {
               {/* 与其他书籍的关系 */}
               <div className="mt-6 pt-4 border-t border-gray-100 dark:border-gray-700">
                 <h4 className="font-medium text-gray-700 dark:text-gray-200 mb-3">
-                  与其他书籍关系
+                  {t('relationships')}
                 </h4>
                 {getBookRelationships(selectedBook.id).length === 0 ? (
                   <p className="text-gray-500 dark:text-gray-400 text-sm">
-                    暂无发现关系
+                    {t('noRelationships')}
                   </p>
                 ) : (
                   <div className="space-y-2">
@@ -372,8 +375,7 @@ export default function NetworkPage() {
                           )}
                           <div>
                             <p className="text-sm text-gray-700 dark:text-gray-200">
-                              与《{otherBook.title}》
-                              {isCorroborate ? '印证' : isConflict ? '冲突' : '补充'}
+                              《{otherBook.title}》 {tr(rel.type)}
                             </p>
                             {rel.description && (
                               <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
@@ -390,7 +392,7 @@ export default function NetworkPage() {
             </div>
           ) : (
             <div className="h-full flex items-center justify-center text-gray-500 dark:text-gray-400">
-              点击节点查看书籍详情
+              {t('clickNode')}
             </div>
           )}
         </div>

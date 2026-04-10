@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Settings, Key, Save, Trash2, Check, AlertCircle } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { AI_PROVIDERS } from '@/types';
 
 interface AIConfig {
@@ -15,6 +16,8 @@ interface AIConfig {
 }
 
 export default function SettingsPage() {
+  const t = useTranslations('settings');
+  
   const [configs, setConfigs] = useState<AIConfig[]>([]);
   const [provider, setProvider] = useState<string>('openai');
   const [apiKey, setApiKey] = useState('');
@@ -30,7 +33,7 @@ export default function SettingsPage() {
         const data = await res.json();
         setConfigs(data);
       } catch (error) {
-        console.error('加载配置失败:', error);
+        console.error('Failed to load configs:', error);
       }
     };
     loadConfigs();
@@ -51,7 +54,7 @@ export default function SettingsPage() {
     setSaveMessage(null);
 
     if (!apiKey.trim()) {
-      setSaveMessage({ type: 'error', text: '请输入API Key' });
+      setSaveMessage({ type: 'error', text: t('saveFailed') });
       return;
     }
 
@@ -71,21 +74,20 @@ export default function SettingsPage() {
         const newConfig = await res.json();
         setConfigs((prev) => [newConfig, ...prev.filter((c) => c.id !== newConfig.id)]);
         setApiKey('');
-        setSaveMessage({ type: 'success', text: '保存成功！' });
+        setSaveMessage({ type: 'success', text: t('savedSuccess') });
         setTimeout(() => setSaveMessage(null), 3000);
       } else {
-        const error = await res.json();
-        setSaveMessage({ type: 'error', text: error.error || '保存失败' });
+        setSaveMessage({ type: 'error', text: t('saveFailed') });
       }
     } catch (error) {
-      console.error('保存配置失败:', error);
-      setSaveMessage({ type: 'error', text: '保存失败，请重试' });
+      console.error('Failed to save config:', error);
+      setSaveMessage({ type: 'error', text: t('saveFailed') });
     }
   };
 
   // 删除配置
   const handleDelete = async (id: string) => {
-    if (!confirm('确定要删除此配置吗？')) return;
+    if (!confirm(t('deleteConfirm'))) return;
 
     try {
       const res = await fetch(`/api/ai/config?id=${id}`, { method: 'DELETE' });
@@ -93,7 +95,7 @@ export default function SettingsPage() {
         setConfigs((prev) => prev.filter((c) => c.id !== id));
       }
     } catch (error) {
-      console.error('删除配置失败:', error);
+      console.error('Failed to delete config:', error);
     }
   };
 
@@ -101,21 +103,21 @@ export default function SettingsPage() {
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-8 flex items-center gap-3">
         <Settings className="h-8 w-8 text-amber-600" />
-        系统设置
+        {t('title')}
       </h1>
 
       {/* AI配置 */}
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 border border-amber-100 dark:border-gray-700 mb-8">
         <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-6 flex items-center gap-2">
           <Key className="h-5 w-5 text-amber-600" />
-          AI服务配置
+          {t('aiConfig')}
         </h2>
 
         <form onSubmit={handleSave} className="space-y-6">
           {/* 提供商选择 */}
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              AI服务提供商
+              {t('provider')}
             </label>
             <select
               value={provider}
@@ -127,20 +129,20 @@ export default function SettingsPage() {
                   {config.name}
                 </option>
               ))}
-              <option value="custom">自定义</option>
+              <option value="custom">Custom</option>
             </select>
           </div>
 
           {/* API Key */}
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              API Key *
+              {t('apiKey')} *
             </label>
             <input
               type="password"
               value={apiKey}
               onChange={(e) => setApiKey(e.target.value)}
-              placeholder="sk-..."
+              placeholder={t('apiKeyPlaceholder')}
               className="w-full px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
             />
           </div>
@@ -148,7 +150,7 @@ export default function SettingsPage() {
           {/* Base URL */}
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              API Base URL
+              {t('baseUrl')}
             </label>
             <input
               type="text"
@@ -158,14 +160,14 @@ export default function SettingsPage() {
               className="w-full px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
             />
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-              可自定义API端点，用于代理或兼容服务
+              {t('baseUrlHint')}
             </p>
           </div>
 
           {/* 模型名称 */}
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              模型名称
+              {t('modelName')}
             </label>
             {provider !== 'custom' && AI_PROVIDERS[provider] ? (
               <select
@@ -214,7 +216,7 @@ export default function SettingsPage() {
             className="flex items-center gap-2 bg-amber-500 hover:bg-amber-600 text-white px-6 py-3 rounded-lg transition-colors"
           >
             <Save className="h-5 w-5" />
-            保存配置
+            {t('saveConfig')}
           </button>
         </form>
       </div>
@@ -222,11 +224,11 @@ export default function SettingsPage() {
       {/* 已保存的配置 */}
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 border border-amber-100 dark:border-gray-700">
         <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-6">
-          已保存的配置
+          {t('savedConfigs')}
         </h2>
 
         {configs.length === 0 ? (
-          <p className="text-gray-500 dark:text-gray-400">暂无保存的配置</p>
+          <p className="text-gray-500 dark:text-gray-400">{t('noConfigs')}</p>
         ) : (
           <div className="space-y-3">
             {configs.map((config) => (
@@ -241,12 +243,12 @@ export default function SettingsPage() {
                     </span>
                     {config.isActive && (
                       <span className="text-xs bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 px-2 py-0.5 rounded">
-                        当前使用
+                        {t('current')}
                       </span>
                     )}
                   </div>
                   <div className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                    Key: {config.apiKey} | Model: {config.modelName || '默认'}
+                    Key: {config.apiKey} | Model: {config.modelName || 'Default'}
                   </div>
                 </div>
                 <button
@@ -264,14 +266,14 @@ export default function SettingsPage() {
       {/* 使用说明 */}
       <div className="mt-8 bg-amber-50 dark:bg-amber-900/20 rounded-xl p-6 border border-amber-200 dark:border-amber-800">
         <h3 className="text-lg font-semibold text-amber-800 dark:text-amber-300 mb-3">
-          使用说明
+          {t('usage')}
         </h3>
         <ul className="space-y-2 text-sm text-amber-700 dark:text-amber-400">
-          <li>1. 选择AI服务提供商并输入对应的API Key</li>
-          <li>2. 支持OpenAI、Claude、DeepSeek等主流AI服务</li>
-          <li>3. 可自定义API端点以支持代理服务</li>
-          <li>4. 保存配置后即可开始分析书籍</li>
-          <li>5. API Key会被安全存储，请妥善保管</li>
+          <li>{t('usage1')}</li>
+          <li>{t('usage2')}</li>
+          <li>{t('usage3')}</li>
+          <li>{t('usage4')}</li>
+          <li>{t('usage5')}</li>
         </ul>
       </div>
     </div>

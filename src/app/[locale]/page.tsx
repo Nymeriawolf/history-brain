@@ -11,7 +11,7 @@ import {
   BookOpen,
   ChevronRight,
 } from 'lucide-react';
-import { LawCategory } from '@/types';
+import { useTranslations } from 'next-intl';
 
 // 书籍卡片组件
 function BookCard({
@@ -19,6 +19,7 @@ function BookCard({
   onAnalyze,
   onDelete,
   isAnalyzing,
+  t,
 }: {
   book: {
     id: string;
@@ -31,6 +32,7 @@ function BookCard({
   onAnalyze: (id: string) => void;
   onDelete: (id: string) => void;
   isAnalyzing: boolean;
+  t: (key: string) => string;
 }) {
   const statusColors: Record<string, string> = {
     pending: 'bg-gray-100 text-gray-600',
@@ -40,10 +42,10 @@ function BookCard({
   };
 
   const statusText: Record<string, string> = {
-    pending: '待分析',
-    analyzing: '分析中',
-    completed: '已完成',
-    error: '分析失败',
+    pending: t('pending'),
+    analyzing: t('analyzing'),
+    completed: t('completed'),
+    error: t('error'),
   };
 
   return (
@@ -60,12 +62,12 @@ function BookCard({
       </div>
       {book.author && (
         <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">
-          作者: {book.author}
+          {t('author')}: {book.author}
         </p>
       )}
       {book._count && (
         <p className="text-sm text-amber-600 dark:text-amber-400 mb-3">
-          已提炼 {book._count.laws} 条规律
+          {book._count.laws} {t('lawsDiscovered')}
         </p>
       )}
       <div className="flex gap-2">
@@ -80,7 +82,7 @@ function BookCard({
             ) : (
               <Brain className="h-4 w-4" />
             )}
-            开始研究
+            {t('startResearch')}
           </button>
         )}
         <button
@@ -95,7 +97,7 @@ function BookCard({
 }
 
 // 规律卡片组件
-function LawCard({ law }: { law: {
+function LawCard({ law, t }: { law: {
   id: string;
   category: string;
   title: string;
@@ -105,7 +107,7 @@ function LawCard({ law }: { law: {
   timePeriod: string | null;
   region: string | null;
   book?: { title: string; author: string | null };
-} }) {
+}; t: (key: string) => string }) {
   const categoryIcons: Record<string, string> = {
     技术发展: '🔧',
     人口发展: '📊',
@@ -114,6 +116,19 @@ function LawCard({ law }: { law: {
     经济发展: '💰',
     社会发展: '🏛️',
     自定义: '📌',
+  };
+
+  const getCategoryName = (cat: string) => {
+    const categoryMap: Record<string, string> = {
+      '技术发展': t('techDevelopment'),
+      '人口发展': t('populationDevelopment'),
+      '地区发展': t('regionDevelopment'),
+      '文化演进': t('culturalEvolution'),
+      '经济发展': t('economicDevelopment'),
+      '社会发展': t('socialDevelopment'),
+      '自定义': t('custom'),
+    };
+    return categoryMap[cat] || cat;
   };
 
   return (
@@ -125,7 +140,7 @@ function LawCard({ law }: { law: {
             {law.title}
           </h3>
           <span className="text-xs text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/30 px-2 py-0.5 rounded">
-            {law.category}
+            {getCategoryName(law.category)}
           </span>
         </div>
       </div>
@@ -151,13 +166,13 @@ function LawCard({ law }: { law: {
           </span>
         )}
         <span className="bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded">
-          置信度: {Math.round(law.confidence * 100)}%
+          {t('confidence')}: {Math.round(law.confidence * 100)}%
         </span>
       </div>
       {law.book && (
         <div className="mt-3 pt-3 border-t border-gray-100 dark:border-gray-700">
           <p className="text-xs text-gray-400 dark:text-gray-500">
-            来源: 《{law.book.title}》{law.book.author && ` - ${law.book.author}`}
+            {t('source')}: 《{law.book.title}》{law.book.author && ` - ${law.book.author}`}
           </p>
         </div>
       )}
@@ -165,7 +180,10 @@ function LawCard({ law }: { law: {
   );
 }
 
-export default function Home() {
+export default function Home({ params }: { params: Promise<{ locale: string }> }) {
+  const t = useTranslations('home');
+  const tc = useTranslations('categories');
+
   const [books, setBooks] = useState<Array<{
     id: string;
     title: string;
@@ -185,9 +203,15 @@ export default function Home() {
     region: string | null;
     book?: { title: string; author: string | null };
   }>>([]);
-  const [selectedCategory, setSelectedCategory] = useState<LawCategory | 'all'>('all');
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [activeTab, setActiveTab] = useState<'upload' | 'text'>('upload');
   const [analyzingBookId, setAnalyzingBookId] = useState<string | null>(null);
+  const [locale, setLocale] = useState<string>('en');
+
+  // 获取locale
+  useEffect(() => {
+    params.then(p => setLocale(p.locale));
+  }, [params]);
 
   // 表单状态
   const [formData, setFormData] = useState({
@@ -202,15 +226,15 @@ export default function Home() {
   });
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
 
-  const categories: (LawCategory | 'all')[] = [
-    'all',
-    '技术发展',
-    '人口发展',
-    '地区发展',
-    '文化演进',
-    '经济发展',
-    '社会发展',
-    '自定义',
+  const categories = [
+    { key: 'all', label: t('all') },
+    { key: 'techDevelopment', label: t('techDevelopment') },
+    { key: 'populationDevelopment', label: t('populationDevelopment') },
+    { key: 'regionDevelopment', label: t('regionDevelopment') },
+    { key: 'culturalEvolution', label: t('culturalEvolution') },
+    { key: 'economicDevelopment', label: t('economicDevelopment') },
+    { key: 'socialDevelopment', label: t('socialDevelopment') },
+    { key: 'custom', label: t('custom') },
   ];
 
   // 加载数据
@@ -220,21 +244,31 @@ export default function Home() {
       const data = await res.json();
       setBooks(data);
     } catch (error) {
-      console.error('加载书籍失败:', error);
+      console.error('Failed to load books:', error);
     }
   }, []);
 
   const loadLaws = useCallback(async () => {
     try {
+      const categoryMap: Record<string, string> = {
+        'techDevelopment': '技术发展',
+        'populationDevelopment': '人口发展',
+        'regionDevelopment': '地区发展',
+        'culturalEvolution': '文化演进',
+        'economicDevelopment': '经济发展',
+        'socialDevelopment': '社会发展',
+        'custom': '自定义',
+      };
+      
       const url =
         selectedCategory === 'all'
           ? '/api/laws'
-          : `/api/laws?category=${selectedCategory}`;
+          : `/api/laws?category=${categoryMap[selectedCategory] || selectedCategory}`;
       const res = await fetch(url);
       const data = await res.json();
       setLaws(data);
     } catch (error) {
-      console.error('加载规律失败:', error);
+      console.error('Failed to load laws:', error);
     }
   }, [selectedCategory]);
 
@@ -273,7 +307,7 @@ export default function Home() {
         setUploadedFile(null);
         loadBooks();
       } catch (error) {
-        console.error('上传失败:', error);
+        console.error('Upload failed:', error);
       }
     } else if (activeTab === 'text' && formData.content) {
       try {
@@ -294,7 +328,7 @@ export default function Home() {
         });
         loadBooks();
       } catch (error) {
-        console.error('创建书籍失败:', error);
+        console.error('Failed to create book:', error);
       }
     }
   };
@@ -309,7 +343,7 @@ export default function Home() {
         loadLaws();
       }
     } catch (error) {
-      console.error('分析失败:', error);
+      console.error('Analysis failed:', error);
     } finally {
       setAnalyzingBookId(null);
     }
@@ -320,14 +354,13 @@ export default function Home() {
     if (!confirm('确定要删除这本书吗？')) return;
 
     try {
-      // 使用 Prisma 的级联删除会自动删除相关规律
       const res = await fetch(`/api/books/${id}`, { method: 'DELETE' });
       if (res.ok) {
         loadBooks();
         loadLaws();
       }
     } catch (error) {
-      console.error('删除失败:', error);
+      console.error('Delete failed:', error);
     }
   };
 
@@ -337,7 +370,7 @@ export default function Home() {
       <section className="mb-12">
         <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6 flex items-center gap-2">
           <Book className="h-6 w-6 text-amber-600" />
-          添加新书籍
+          {t('addBook')}
         </h2>
 
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 border border-amber-100 dark:border-gray-700">
@@ -352,7 +385,7 @@ export default function Home() {
               }`}
             >
               <Upload className="h-4 w-4" />
-              上传文件
+              {t('uploadFile')}
             </button>
             <button
               onClick={() => setActiveTab('text')}
@@ -363,7 +396,7 @@ export default function Home() {
               }`}
             >
               <FileText className="h-4 w-4" />
-              粘贴文本
+              {t('pasteText')}
             </button>
           </div>
 
@@ -397,10 +430,10 @@ export default function Home() {
                     >
                       <Upload className="h-12 w-12 text-amber-400 mb-4" />
                       <span className="text-gray-600 dark:text-gray-300">
-                        拖拽文件到此处或点击上传
+                        {t('dragDrop')}
                       </span>
                       <span className="text-sm text-gray-400 mt-2">
-                        支持 PDF、TXT、MD 格式
+                        {t('supportedFormats')}
                       </span>
                     </label>
                     {uploadedFile && (
@@ -417,7 +450,7 @@ export default function Home() {
                     onChange={(e) =>
                       setFormData({ ...formData, content: e.target.value })
                     }
-                    placeholder="在此粘贴书籍文本内容..."
+                    placeholder="Paste book content here..."
                     className="w-full h-64 p-4 border border-gray-200 dark:border-gray-600 rounded-lg resize-none focus:ring-2 focus:ring-amber-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
                   />
                 )}
@@ -427,7 +460,7 @@ export default function Home() {
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    书名 *
+                    {t('titleRequired')}
                   </label>
                   <input
                     type="text"
@@ -442,7 +475,7 @@ export default function Home() {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                      作者
+                      {t('author')}
                     </label>
                     <input
                       type="text"
@@ -455,7 +488,7 @@ export default function Home() {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                      作者国籍
+                      {t('authorNationality')}
                     </label>
                     <input
                       type="text"
@@ -473,7 +506,7 @@ export default function Home() {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                      出版社
+                      {t('publisher')}
                     </label>
                     <input
                       type="text"
@@ -486,7 +519,7 @@ export default function Home() {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                      出版日期
+                      {t('publishDate')}
                     </label>
                     <input
                       type="text"
@@ -494,14 +527,14 @@ export default function Home() {
                       onChange={(e) =>
                         setFormData({ ...formData, publishDate: e.target.value })
                       }
-                      placeholder="如: 2006年"
+                      placeholder={t('publishDatePlaceholder')}
                       className="w-full px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
                     />
                   </div>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    作者生平简介
+                    {t('authorBio')}
                   </label>
                   <textarea
                     value={formData.authorBio}
@@ -514,7 +547,7 @@ export default function Home() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    作者主要思想
+                    {t('authorThoughts')}
                   </label>
                   <textarea
                     value={formData.authorThoughts}
@@ -542,7 +575,7 @@ export default function Home() {
                 className="flex items-center gap-2 bg-amber-500 hover:bg-amber-600 text-white px-6 py-3 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <ChevronRight className="h-5 w-5" />
-                添加书籍
+                {t('addBookBtn')}
               </button>
             </div>
           </form>
@@ -553,11 +586,11 @@ export default function Home() {
       <section className="mb-12">
         <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6 flex items-center gap-2">
           <BookOpen className="h-6 w-6 text-amber-600" />
-          已学习书籍
+          {t('learnedBooks')}
         </h2>
         {books.length === 0 ? (
           <div className="text-center py-12 text-gray-500 dark:text-gray-400">
-            暂无书籍，请先添加
+            {t('noBooks')}
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -568,6 +601,7 @@ export default function Home() {
                 onAnalyze={handleAnalyze}
                 onDelete={handleDelete}
                 isAnalyzing={analyzingBookId === book.id}
+                t={t}
               />
             ))}
           </div>
@@ -578,34 +612,34 @@ export default function Home() {
       <section>
         <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6 flex items-center gap-2">
           <Brain className="h-6 w-6 text-amber-600" />
-          提炼的规律
+          {t('discoveredLaws')}
         </h2>
 
         {/* 分类筛选 */}
         <div className="flex flex-wrap gap-2 mb-6">
           {categories.map((cat) => (
             <button
-              key={cat}
-              onClick={() => setSelectedCategory(cat)}
+              key={cat.key}
+              onClick={() => setSelectedCategory(cat.key)}
               className={`px-4 py-2 rounded-full text-sm transition-colors ${
-                selectedCategory === cat
+                selectedCategory === cat.key
                   ? 'bg-amber-500 text-white'
                   : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-amber-100 dark:hover:bg-gray-700 border border-amber-200 dark:border-gray-600'
               }`}
             >
-              {cat === 'all' ? '全部' : cat}
+              {cat.label}
             </button>
           ))}
         </div>
 
         {laws.length === 0 ? (
           <div className="text-center py-12 text-gray-500 dark:text-gray-400">
-            暂无规律，请先分析书籍
+            {t('noLaws')}
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {laws.map((law) => (
-              <LawCard key={law.id} law={law} />
+              <LawCard key={law.id} law={law} t={t} />
             ))}
           </div>
         )}
