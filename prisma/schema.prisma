@@ -1,0 +1,94 @@
+// Prisma Schema for History Brain
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// 书籍表
+model Book {
+  id                String   @id @default(uuid())
+  title             String
+  author            String?
+  authorNationality String?  @map("author_nationality")
+  publisher         String?
+  publishDate       String?  @map("publish_date")
+  authorBio         String?  @map("author_bio")
+  authorThoughts    String?  @map("author_thoughts")
+  content           String?
+  status            String   @default("pending")
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  laws          Law[]
+  relationshipsA Relationship[] @relation("BookRelations")
+  relationshipsB Relationship[] @relation("BookRelationsB")
+
+  @@map("books")
+}
+
+// 历史规律表
+model Law {
+  id          String   @id @default(uuid())
+  bookId      String   @map("book_id")
+  category    String
+  title       String
+  description String
+  evidence    String?
+  confidence  Float    @default(0.5)
+  timePeriod  String?  @map("time_period")
+  region      String?
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  book Book @relation(fields: [bookId], references: [id], onDelete: Cascade)
+
+  @@map("laws")
+}
+
+// 书籍关系表
+model Relationship {
+  id               String   @id @default(uuid())
+  bookAId          String   @map("book_a_id")
+  bookBId          String   @map("book_b_id")
+  type             String
+  description      String?
+  relatedContentA  String?  @map("related_content_a")
+  relatedContentB  String?  @map("related_content_b")
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  bookA Book @relation("BookRelations", fields: [bookAId], references: [id], onDelete: Cascade)
+  bookB Book @relation("BookRelationsB", fields: [bookBId], references: [id], onDelete: Cascade)
+
+  @@map("relationships")
+}
+
+// AI记忆表
+model Memory {
+  id            String   @id @default(uuid())
+  content       String
+  category      String?
+  sourceBookIds String   @map("source_book_ids")
+  importance    Float    @default(0.5)
+  createdAt     DateTime @default(now()) @map("created_at")
+  lastAccessed  DateTime @default(now()) @map("last_accessed")
+
+  @@map("memory")
+}
+
+// API配置表
+model ApiConfig {
+  id        String   @id @default(uuid())
+  userId    String?  @map("user_id")
+  provider  String
+  apiKey    String   @map("api_key")
+  baseUrl   String?  @map("base_url")
+  modelName String?  @map("model_name")
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("api_configs")
+}
